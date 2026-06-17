@@ -1,29 +1,19 @@
 # crypto
 
 ## Purpose
-[Describe the purpose of this SageLang library module.]
+Comprehensive cryptographic library for secure communication and data protection in SageLang.
 
 ## Features
-- [Feature 1]
-- [Feature 2]
-
-## Installation
-Add as a submodule to your SageLang project:
-```bash
-git submodule add <repository-url> core/lib/crypto
-```
-
-## API Documentation
-[Link to detailed API documentation]
+- **Ciphers**: AES and other standard symmetric algorithms.
+- **Hashing**: SHA, MD5, and other hashing functions.
+- **HMAC**: Message authentication codes.
+- **Entropy**: Secure random number generation.
 
 ## Usage Example
 ```sage
-import crypto
-# Example usage...
+import crypto.hash
+import crypto.cipher
+
+let h = hash.sha256("data")
+let encrypted = cipher.aes_encrypt(data, key)
 ```
-
-## Contributing
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
-
-## License
-MIT (or maintain main project license)
