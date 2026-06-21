@@ -1,4 +1,3 @@
-gc_disable()
 # Pseudorandom number generators for cryptographic and general use
 # Implements xoshiro256** (fast, high-quality PRNG) and utilities
 
@@ -157,3 +156,43 @@ proc uuid4(state):
         if i == 3 or i == 5 or i == 7 or i == 9:
             result = result + "-"
     return result
+
+# Generate cryptographically secure random bytes from /dev/urandom
+proc get_urandom_bytes(count):
+    let libc = ffi_open("libc.so.6")
+    if libc == nil:
+        libc = ffi_open("libc.so")
+    end
+    if libc == nil:
+        libc = ffi_open("")
+    end
+    if libc == nil:
+        raise "FFI: libc not found"
+    end
+    
+    let fd = ffi_call(libc, "open", "int", ["/dev/urandom", 0])
+    if fd < 0:
+        ffi_close(libc)
+        raise "Failed to open /dev/urandom"
+    end
+    
+    let buf = mem_alloc(count)
+    let nread = ffi_call(libc, "read", "int", [fd, buf, count])
+    if nread != count:
+        mem_free(buf)
+        ffi_call(libc, "close", "int", [fd])
+        ffi_close(libc)
+        raise "Failed to read enough bytes from /dev/urandom"
+    end
+    
+    let bytes = []
+    for i in range(count):
+        push(bytes, mem_read(buf, i, "byte"))
+    end
+    
+    mem_free(buf)
+    ffi_call(libc, "close", "int", [fd])
+    ffi_close(libc)
+    return bytes
+
+

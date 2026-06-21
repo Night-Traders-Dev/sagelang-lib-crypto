@@ -4,3 +4,9 @@ import crypto.hash
 import crypto.hmac
 import crypto.password
 import crypto.rand
+import crypto.chacha20
+import crypto.poly1305
+import crypto.aead
+import crypto.blake2s
+import crypto.hkdf
+import crypto.x25519
