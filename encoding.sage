@@ -11,7 +11,7 @@ proc b64_encode(input):
     let data = input
     if type(input) == "string":
         data = str_to_bytes(input)
-    let result = ""
+    let parts = []
     let i = 0
     while i < len(data):
         let a = data[i]
@@ -27,18 +27,18 @@ proc b64_encode(input):
         else:
             pad = pad + 1
         let n = a * 65536 + b * 256 + c
-        result = result + B64_CHARS[(n >> 18) & 63]
-        result = result + B64_CHARS[(n >> 12) & 63]
+        push(parts, B64_CHARS[(n >> 18) & 63])
+        push(parts, B64_CHARS[(n >> 12) & 63])
         if pad < 2:
-            result = result + B64_CHARS[(n >> 6) & 63]
+            push(parts, B64_CHARS[(n >> 6) & 63])
         else:
-            result = result + "="
+            push(parts, "=")
         if pad < 1:
-            result = result + B64_CHARS[n & 63]
+            push(parts, B64_CHARS[n & 63])
         else:
-            result = result + "="
+            push(parts, "=")
         i = i + 3
-    return result
+    return join(parts, "")
 
 proc b64_char_val(c):
     let code = ord(c)
@@ -85,35 +85,34 @@ proc b64_decode(encoded):
 
 proc b64_decode_string(encoded):
     let bytes = b64_decode(encoded)
-    let result = ""
+    let parts = []
     for i in range(len(bytes)):
-        result = result + chr(bytes[i])
-    return result
+        push(parts, chr(bytes[i]))
+    return join(parts, "")
 
 # URL-safe Base64 (RFC 4648 section 5)
 proc b64url_encode(input):
     let std = b64_encode(input)
-    let result = ""
+    let parts = []
     for i in range(len(std)):
         if std[i] == "+":
-            result = result + "-"
-        if std[i] == "/":
-            result = result + "_"
-        if std[i] == "=":
-            let skip = true
-        if std[i] != "+" and std[i] != "/" and std[i] != "=":
-            result = result + std[i]
-    return result
+            push(parts, "-")
+        elif std[i] == "/":
+            push(parts, "_")
+        elif std[i] != "=":
+            push(parts, std[i])
+    return join(parts, "")
 
 proc b64url_decode(encoded):
-    let std = ""
+    let parts = []
     for i in range(len(encoded)):
         if encoded[i] == "-":
-            std = std + "+"
-        if encoded[i] == "_":
-            std = std + "/"
-        if encoded[i] != "-" and encoded[i] != "_":
-            std = std + encoded[i]
+            push(parts, "+")
+        elif encoded[i] == "_":
+            push(parts, "/")
+        else:
+            push(parts, encoded[i])
+    let std = join(parts, "")
     # Add padding
     while (len(std) & 3) != 0:
         std = std + "="
@@ -128,10 +127,11 @@ proc hex_encode(input):
     if type(input) == "string":
         data = str_to_bytes(input)
     let digits = "0123456789abcdef"
-    let result = ""
+    let parts = []
     for i in range(len(data)):
-        result = result + digits[(data[i] >> 4) & 15] + digits[data[i] & 15]
-    return result
+        push(parts, digits[(data[i] >> 4) & 15])
+        push(parts, digits[data[i] & 15])
+    return join(parts, "")
 
 proc hex_val(c):
     let code = ord(c)
@@ -156,10 +156,10 @@ proc hex_decode(encoded):
 
 proc hex_decode_string(encoded):
     let bytes = hex_decode(encoded)
-    let result = ""
+    let parts = []
     for i in range(len(bytes)):
-        result = result + chr(bytes[i])
-    return result
+        push(parts, chr(bytes[i]))
+    return join(parts, "")
 
 # ============================================================================
 # Helpers
@@ -172,7 +172,7 @@ proc str_to_bytes(s):
     return bytes
 
 proc bytes_to_str(bytes):
-    let result = ""
+    let parts = []
     for i in range(len(bytes)):
-        result = result + chr(bytes[i])
-    return result
+        push(parts, chr(bytes[i]))
+    return join(parts, "")
