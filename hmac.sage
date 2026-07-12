@@ -61,10 +61,11 @@ proc str_to_bytes(s):
 
 proc to_hex(bytes):
     let digits = "0123456789abcdef"
-    let result = ""
+    let out = []
     for i in range(len(bytes)):
-        result = result + digits[(bytes[i] >> 4) & 15] + digits[bytes[i] & 15]
-    return result
+        push(out, digits[(bytes[i] >> 4) & 15])
+        push(out, digits[bytes[i] & 15])
+    return join(out, "")
 
 # Convenience: HMAC-SHA256
 proc hmac_sha256(key, message):
