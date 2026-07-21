@@ -9,9 +9,22 @@
 proc u32(val):
     return val & 4294967295
 
+proc u32_not(val):
+    return 4294967295 ^ val
+
 proc rotate_right(val, bits):
     bits = bits & 31
-    return u32((val >> bits) | (val << (32 - bits)))
+    if bits == 0:
+        return u32(val)
+    return u32((u32(val) >> bits) | (u32(val) << (32 - bits)))
+
+proc rotate_left(val, bits):
+    bits = bits & 31
+    if bits == 0:
+        return u32(val)
+    return u32((u32(val) << bits) | (u32(val) >> (32 - bits)))
+
+proc rotate_left(val, bits):
 
 proc to_hex(bytes):
     let hex_chars = "0123456789abcdef"
@@ -130,7 +143,7 @@ proc sha256(input):
         for i in range(64):
             let S1 = rotate_right(e, 6) ^ rotate_right(e, 11) ^ rotate_right(e, 25)
 
-            let ch = (e & f) ^ ((~e) & g)
+            let ch = (e & f) ^ (u32_not(e) & g)
 
             let temp1 = u32(h + S1 + ch + k[i] + w[i])
 
@@ -170,19 +183,99 @@ proc sha256_hex(input):
     return to_hex(sha256(input))
 
 # ============================================================================
-# Compatibility stubs
+# SHA-1
 # ============================================================================
 
-proc sha1_hex(input):
-    return "0000000000000000000000000000000000000000"
-
 proc sha1(input):
-    return [
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0
-    ]
+    let bytes = []
+    if type(input) == "string":
+        for i in range(len(input)):
+            push(bytes, ord(input[i]))
+    else:
+        for b in input:
+            push(bytes, b)
+
+    let msg_len = len(bytes)
+    let bit_len = msg_len * 8
+
+    push(bytes, 128)
+
+    while (len(bytes) + 8) % 64 != 0:
+        push(bytes, 0)
+
+    for i in range(8):
+        push(bytes, (bit_len >> (56 - i * 8)) & 255)
+
+    let h0 = 1732584193
+    let h1 = 4023233417
+    let h2 = 2562383102
+    let h3 = 271733878
+    let h4 = 3285377520
+
+    for chunk_idx in range(len(bytes) / 64):
+        let w = []
+        for i in range(16):
+            let offset = chunk_idx * 64 + i * 4
+            let val = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]
+            push(w, u32(val))
+        for i in range(16, 80):
+            let n = w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]
+            push(w, rotate_left(n, 1))
+
+        let a = h0
+        let b = h1
+        let c = h2
+        let d = h3
+        let e = h4
+
+        for i in range(80):
+            let f = 0
+            let k = 0
+            if i < 20:
+                f = (b & c) | (u32_not(b) & d)
+                k = 1518500249
+            elif i < 40:
+                f = b ^ c ^ d
+                k = 1859775393
+            elif i < 60:
+                f = (b & c) | (b & d) | (c & d)
+                k = 2400959708
+            else:
+                f = b ^ c ^ d
+                k = 3395469782
+
+            let temp = u32(rotate_left(a, 5) + f + e + k + w[i])
+            e = d
+            d = c
+            c = rotate_left(b, 30)
+            b = a
+            a = temp
+
+        h0 = u32(h0 + a)
+        h1 = u32(h1 + b)
+        h2 = u32(h2 + c)
+        h3 = u32(h3 + d)
+        h4 = u32(h4 + e)
+
+    let result = []
+    for val in [h0, h1, h2, h3, h4]:
+        for i in range(4):
+            push(result, (val >> (24 - i * 8)) & 255)
+    return result
+
+proc rotate_left(val, bits):
+    bits = bits & 31
+    if bits == 0:
+        return u32(val)
+    let v = u32(val)
+    let shift_out = 32 - bits
+    let mask = u32((1 << shift_out) - 1)
+    let low_part = u32((v & mask) << bits)
+    let high_part = v >> shift_out
+    return low_part | high_part
+
+proc sha1_hex(input):
+    return to_hex(sha1(input))
 
 proc crc32_hex(input):
     return "00000000"
