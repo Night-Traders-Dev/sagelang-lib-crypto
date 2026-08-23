@@ -1,9 +1,13 @@
 # lib/crypto/hash.sage
 # Cryptographic hash functions
-# Pure Sage implementations of SHA-256 (SHA-1 and CRC32 are currently stubs)
+# Pure Sage implementations of SHA-256, SHA-1 and CRC-32 (IEEE 802.3)
 
 # ============================================================================
 # Utility functions
+#
+# NOTE ON 32-BIT ROTATES: Sage numbers are IEEE doubles, so any intermediate
+# >= 2^53 silently loses low bits. Rotates therefore mask each shifted half
+# to < 2^32 BEFORE combining so every intermediate stays exactly representable.
 # ============================================================================
 
 proc u32(val):
@@ -16,13 +20,17 @@ proc rotate_right(val, bits):
     bits = bits & 31
     if bits == 0:
         return u32(val)
-    return u32((u32(val) >> bits) | (u32(val) << (32 - bits)))
+    let v = u32(val)
+    let low_keep = u32((1 << bits) - 1)
+    return ((v >> bits) | ((v & low_keep) << (32 - bits))) & 4294967295
 
 proc rotate_left(val, bits):
     bits = bits & 31
     if bits == 0:
         return u32(val)
-    return u32((u32(val) << bits) | (u32(val) >> (32 - bits)))
+    let v = u32(val)
+    let high_keep = u32((1 << (32 - bits)) - 1)
+    return (((v & high_keep) << bits) | (v >> (32 - bits))) & 4294967295
 
 proc to_hex(bytes):
     let hex_chars = "0123456789abcdef"
@@ -92,21 +100,21 @@ proc sha256(input):
 
     let k = [
         1116352408, 1899447441, 3049323471, 3921009573,
-        961987163, 1508970993, 2459634720, 2720421305,
-        3122656301, 3544501223, 3921009573, 560221221,
-        1451311052, 2838356021, 3433967609, 3581690434,
-        290101359, 704193009, 1131333185, 1216132255,
-        1930333202, 2162078206, 2614888103, 2734883394,
-        3141800269, 3292060456, 3402391561, 3510343828,
-        6741867, 465385540, 716801817, 981146761,
-        1182852264, 1245943496, 1745166178, 1991074509,
-        2261045236, 2479840512, 2813940133, 2894366581,
-        3223085061, 3351051941, 3543430328, 3712769342,
-        427722605, 514037841, 833391301, 952520296,
-        1074042766, 1208649078, 1441403485, 1712485647,
-        2390312959, 2399324410, 3067591951, 3224412992,
-        3401243558, 3584047207, 3617628654, 3877102078,
-        235159594, 588362306, 626152660, 1024914920
+        961987163, 1508970993, 2453635748, 2870763221,
+        3624381080, 310598401, 607225278, 1426881987,
+        1925078388, 2162078206, 2614888103, 3248222580,
+        3835390401, 4022224774, 264347078, 604807628,
+        770255983, 1249150122, 1555081692, 1996064986,
+        2554220882, 2821834349, 2952996808, 3210313671,
+        3336571891, 3584528711, 113926993, 338241895,
+        666307205, 773529912, 1294757372, 1396182291,
+        1695183700, 1986661051, 2177026350, 2456956037,
+        2730485921, 2820302411, 3259730800, 3345764771,
+        3516065817, 3600352804, 4094571909, 275423344,
+        430227734, 506948616, 659060556, 883997877,
+        958139571, 1322822218, 1537002063, 1747873779,
+        1955562222, 2024104815, 2227730452, 2361852424,
+        2428436474, 2756734187, 3204031479, 3329325298
     ]
 
     for chunk_idx in range(len(bytes) / 64):
@@ -261,19 +269,24 @@ proc sha1(input):
             push(result, (val >> (24 - i * 8)) & 255)
     return result
 
-proc rotate_left(val, bits):
-    bits = bits & 31
-    if bits == 0:
-        return u32(val)
-    let v = u32(val)
-    let shift_out = 32 - bits
-    let mask = u32((1 << shift_out) - 1)
-    let low_part = u32((v & mask) << bits)
-    let high_part = v >> shift_out
-    return low_part | high_part
-
 proc sha1_hex(input):
     return to_hex(sha1(input))
 
+# CRC-32 (IEEE 802.3, reflected, poly 0xEDB88320 — zlib/PNG compatible)
+proc crc32(input):
+    let bytes = string_to_bytes(input)
+    let crc = 4294967295
+    for b in bytes:
+        # bitwise reflected table lookup (entry for low byte)
+        let x = (crc ^ b) & 255
+        for i in range(8):
+            if x & 1:
+                x = (x >> 1) ^ 3988292384
+            else:
+                x = x >> 1
+        crc = (crc >> 8) ^ x
+    return crc ^ 4294967295
+
 proc crc32_hex(input):
-    return "00000000"
+    let c = crc32(input)
+    return to_hex([(c >> 24) & 255, (c >> 16) & 255, (c >> 8) & 255, c & 255])

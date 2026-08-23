@@ -67,9 +67,10 @@ proc xor_encrypt(data, key):
     let k = key
     if type(key) == "string":
         k = str_to_bytes(key)
+    let klen = len(k)
     let result = []
     for i in range(len(d)):
-        push(result, d[i] ^ k[i & (len(k) - 1)])
+        push(result, d[i] ^ k[i % klen])
     return result
 
 # XOR decrypt is identical to encrypt
@@ -88,9 +89,12 @@ proc rc4_init(key):
     let s = []
     for i in range(256):
         push(s, i)
+    let klen = len(k)
+    if klen == 0:
+        raise "rc4: empty key"
     let j = 0
     for i in range(256):
-        j = (j + s[i] + k[i & (len(k) - 1)]) & 255
+        j = (j + s[i] + k[i % klen]) & 255
         let temp = s[i]
         s[i] = s[j]
         s[j] = temp
@@ -250,6 +254,8 @@ proc g2(x):
 
 proc aes_key_expansion(key):
     let key_len = len(key)
+    if key_len != 16 and key_len != 32:
+        raise "aes: key must be 16 bytes (AES-128) or 32 bytes (AES-256)"
     let expanded = []
     for i in range(key_len):
         push(expanded, key[i])

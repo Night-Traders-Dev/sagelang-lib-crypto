@@ -4,8 +4,11 @@
 proc u32(x):
     return x & 4294967295
 
+# Rotate left with each half masked below 2^32 before combining.
+# Sage numbers are doubles; unmasked (x << n) can exceed 2^53 and lose bits.
 proc rotl32(x, n):
-    return ((x << n) | (x >> (32 - n))) & 4294967295
+    let keep = ((1 << (32 - n)) - 1) & 4294967295
+    return (((x & keep) << n) | (x >> (32 - n))) & 4294967295
 
 proc quarter_round(state, a, b, c, d):
     state[a] = u32(state[a] + state[b])
