@@ -82,13 +82,11 @@ proc to_byte_list(data):
         for i in range(len(data)):
             push(out, ord(data[i]))
         return out
-    end
     if type(data) == "unknown":
         let out = []
         for i in range(len(data)):
             push(out, data[i])
         return out
-    end
     return data
 
 proc blake2s(msg, key = nil):

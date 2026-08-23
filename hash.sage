@@ -24,8 +24,6 @@ proc rotate_left(val, bits):
         return u32(val)
     return u32((u32(val) << bits) | (u32(val) >> (32 - bits)))
 
-proc rotate_left(val, bits):
-
 proc to_hex(bytes):
     let hex_chars = "0123456789abcdef"
 

@@ -211,15 +211,12 @@ proc get_urandom_bytes(count):
 
     if libc == nil:
         libc = ffi_open("libc.so")
-    end
 
     if libc == nil:
         libc = ffi_open("")
-    end
 
     if libc == nil:
         raise "FFI: libc not found"
-    end
 
     let fd = ffi_call(
         libc,
@@ -231,7 +228,6 @@ proc get_urandom_bytes(count):
     if fd < 0:
         ffi_close(libc)
         raise "Failed to open /dev/urandom"
-    end
 
     let buf = mem_alloc(count)
 
@@ -247,13 +243,11 @@ proc get_urandom_bytes(count):
         ffi_call(libc, "close", "int", [fd])
         ffi_close(libc)
         raise "Failed to read enough bytes from /dev/urandom"
-    end
 
     let bytes = []
 
     for i in range(count):
         push(bytes, mem_read(buf, i, "byte"))
-    end
 
     mem_free(buf)
     ffi_call(libc, "close", "int", [fd])
