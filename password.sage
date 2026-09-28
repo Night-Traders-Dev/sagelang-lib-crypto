@@ -90,9 +90,10 @@ proc secure_compare(a, b):
 
 proc hmac_raw(hash_fn, key, message, block_size):
     let k = []
-
-    for b in key:
-        push(k, b)
+    # Index rather than iterate: a `bytes` key is not iterable by `for`, and
+    # iterating one raised and left the key empty, silently changing the HMAC.
+    for i in range(len(key)):
+        push(k, key[i])
 
     if len(k) > block_size:
         k = hash_fn(k)

@@ -64,16 +64,33 @@ proc copy_bytes(src):
 # SHA-256
 # ============================================================================
 
+# Normalise any accepted input type to a list of byte values.
+#
+# sha256() and sha1() used to do `for b in input` for the non-string case. The
+# for loop only accepts array, tuple and dict, so passing a `bytes` object -- what
+# io.readbytes() returns, and what SageLink hashes file contents from -- raised
+# "for loop iterable must be an array, tuple, or dict" and left the buffer empty.
+# The hash of the empty string was then returned with no error, so a file
+# integrity check silently verified nothing.
+proc to_byte_list(data):
+    if type(data) == "string":
+        let out = []
+        for i in range(len(data)):
+            push(out, ord(data[i]))
+        return out
+    if type(data) == "bytes" or type(data) == "unknown":
+        let out = []
+        for i in range(len(data)):
+            push(out, data[i])
+        return out
+    return data
+
 proc sha256(input):
     # Never mutate caller-owned input
     let bytes = []
 
-    if type(input) == "string":
-        for i in range(len(input)):
-            push(bytes, ord(input[i]))
-    else:
-        for b in input:
-            push(bytes, b)
+    for b in to_byte_list(input):
+        push(bytes, b)
 
     let msg_len = len(bytes)
     let bit_len = msg_len * 8
@@ -194,12 +211,8 @@ proc sha256_hex(input):
 
 proc sha1(input):
     let bytes = []
-    if type(input) == "string":
-        for i in range(len(input)):
-            push(bytes, ord(input[i]))
-    else:
-        for b in input:
-            push(bytes, b)
+    for b in to_byte_list(input):
+        push(bytes, b)
 
     let msg_len = len(bytes)
     let bit_len = msg_len * 8

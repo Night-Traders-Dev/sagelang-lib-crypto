@@ -82,7 +82,11 @@ proc to_byte_list(data):
         for i in range(len(data)):
             push(out, ord(data[i]))
         return out
-    if type(data) == "unknown":
+    if type(data) == "bytes" or type(data) == "unknown":
+        # `bytes` is a real type now, and indexing it yields numbers. Iterating it
+        # with `for` does not work -- the for loop only accepts array, tuple and
+        # dict -- so normalise by index. "unknown" is a raw memory handle from
+        # mem_alloc, which indexes the same way.
         let out = []
         for i in range(len(data)):
             push(out, data[i])
